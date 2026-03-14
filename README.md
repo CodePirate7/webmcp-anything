@@ -1,3 +1,5 @@
+[English](./README.md) | [中文](./README.zh-CN.md)
+
 # webmcp-anything
 
 **Turn any Web App into an MCP Tool Server.**
@@ -235,6 +237,19 @@ webmcp-anything/
 | Generation | Manual tool writing | AI-driven with methodology |
 
 webmcp-anything uses the same `useWebMCP` hook from MCP-B's npm ecosystem — they're complementary, not competing.
+
+## Inspiration & Credits
+
+This project stands on the shoulders of these excellent works:
+
+| Project | Contribution | Link |
+|---------|-------------|------|
+| **CLI-Anything** | The "harness" methodology — AI reads standards, generates integration code. Our entire approach (WEB-HARNESS.md + skill commands) is directly inspired by CLI-Anything's HARNESS.md + commands pattern. | [HKUDS/CLI-Anything](https://github.com/HKUDS/CLI-Anything) |
+| **WebMCP (W3C Draft)** | The `navigator.modelContext` browser API specification that defines how web pages expose tools to AI agents. Our SDK targets this standard. | [WebMCP Spec](https://webmachinelearning.github.io/webmcp/) |
+| **MCP-B (Browser MCP)** | The `useWebMCP` React hook and `@mcp-b/webmcp-polyfill` that we build upon. MCP-B pioneered the browser-to-agent bridge concept using Chrome Extension + cloud relay. | [anthropics/mcp-b](https://github.com/anthropics/mcp-b) |
+| **Model Context Protocol** | The underlying protocol standard that enables AI agents to discover and call tools. Our Bridge server implements MCP via `@modelcontextprotocol/sdk`. | [MCP Spec](https://modelcontextprotocol.io) |
+
+**Key distinction**: CLI-Anything generates CLI commands for desktop GUI software; webmcp-anything generates MCP Tools for web applications. MCP-B provides the Chrome Extension transport; webmcp-anything provides a WebSocket transport that works across all browsers. They are complementary approaches solving different parts of the "AI operates software" problem.
 
 ## Contributing
 
