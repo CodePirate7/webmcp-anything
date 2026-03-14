@@ -1,6 +1,6 @@
 {
   "name": "webmcp-anything",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Turn any Web App into an MCP Tool Server",
   "type": "module",
   "bin": {

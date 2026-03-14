@@ -1,6 +1,6 @@
 {
   "name": "@webmcp-anything/bridge",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Bridge server connecting browser WebMCP tools to AI agents via MCP protocol",
   "type": "module",
   "exports": {
@@ -41,6 +41,14 @@
     "url": "https://github.com/CodePirate7/webmcp-anything",
     "directory": "packages/bridge"
   },
-  "keywords": ["mcp", "webmcp", "bridge", "websocket", "ai", "agent", "tools"],
+  "keywords": [
+    "mcp",
+    "webmcp",
+    "bridge",
+    "websocket",
+    "ai",
+    "agent",
+    "tools"
+  ],
   "license": "MIT"
 }

@@ -1,6 +1,6 @@
 {
   "name": "@webmcp-anything/sdk",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Browser SDK for webmcp-anything — Bridge client + useWebMCP re-export",
   "type": "module",
   "exports": {
@@ -11,7 +11,9 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
     "dev": "tsup src/index.ts --format esm --dts --watch",
@@ -31,6 +33,15 @@
     "url": "https://github.com/CodePirate7/webmcp-anything",
     "directory": "packages/sdk"
   },
-  "keywords": ["mcp", "webmcp", "react", "hooks", "ai", "agent", "tools", "browser"],
+  "keywords": [
+    "mcp",
+    "webmcp",
+    "react",
+    "hooks",
+    "ai",
+    "agent",
+    "tools",
+    "browser"
+  ],
   "license": "MIT"
 }
