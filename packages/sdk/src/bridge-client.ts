@@ -329,7 +329,7 @@ export function cleanupBridge(): void {
   const nav = typeof navigator !== 'undefined' ? navigator : null;
   if (nav) {
     try {
-      delete (nav as Record<string, unknown>).modelContext;
+      delete (nav as unknown as Record<string, unknown>).modelContext;
     } catch {
       // Ignore if not deletable
     }

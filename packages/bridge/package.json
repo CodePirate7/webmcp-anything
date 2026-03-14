@@ -1,6 +1,6 @@
 {
   "name": "@webmcp-anything/bridge",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Bridge server connecting browser WebMCP tools to AI agents via MCP protocol",
   "type": "module",
   "exports": {
@@ -14,7 +14,9 @@
   "bin": {
     "webmcp-bridge": "./dist/bin.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/index.ts src/bin.ts --format esm --dts",
     "dev": "tsx src/bin.ts",
@@ -25,10 +27,20 @@
     "ws": "^8.16.0"
   },
   "devDependencies": {
-    "@types/ws": "^8.5.10",
-    "tsx": "^4.7.0",
+    "@types/node": "^25.5.0",
+    "@types/ws": "^8.18.1",
     "tsup": "^8.0.0",
+    "tsx": "^4.7.0",
     "typescript": "^5.4.0"
   },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CodePirate7/webmcp-anything",
+    "directory": "packages/bridge"
+  },
+  "keywords": ["mcp", "webmcp", "bridge", "websocket", "ai", "agent", "tools"],
   "license": "MIT"
 }

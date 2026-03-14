@@ -1,12 +1,14 @@
 {
   "name": "webmcp-anything",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Turn any Web App into an MCP Tool Server",
   "type": "module",
   "bin": {
     "webmcp-anything": "./dist/index.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
     "dev": "tsx src/index.ts",
@@ -16,9 +18,19 @@
     "@webmcp-anything/bridge": "workspace:*"
   },
   "devDependencies": {
-    "tsx": "^4.7.0",
+    "@types/node": "^25.5.0",
     "tsup": "^8.0.0",
+    "tsx": "^4.7.0",
     "typescript": "^5.4.0"
   },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CodePirate7/webmcp-anything",
+    "directory": "packages/cli"
+  },
+  "keywords": ["mcp", "webmcp", "cli", "ai", "agent", "tools", "webapp"],
   "license": "MIT"
 }
