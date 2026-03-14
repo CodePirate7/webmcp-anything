@@ -1,0 +1,24 @@
+{
+  "name": "webmcp-anything",
+  "version": "0.1.0",
+  "description": "Turn any Web App into an MCP Tool Server",
+  "type": "module",
+  "bin": {
+    "webmcp-anything": "./dist/index.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@webmcp-anything/bridge": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0"
+  },
+  "license": "MIT"
+}

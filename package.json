@@ -1,0 +1,21 @@
+{
+  "name": "webmcp-anything-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Turn any Web App into an MCP Tool Server",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm --filter @webmcp-anything/bridge dev",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "tsup": "^8.0.0"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "license": "MIT"
+}
