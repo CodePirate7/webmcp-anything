@@ -1,44 +1,8 @@
 # Contributing to webmcp-anything
 
-Thanks for your interest in contributing! This guide will help you get started.
+Thanks for your interest in contributing! webmcp-anything is a **methodology project** — it teaches AI agents how to turn Web Apps into MCP Tools.
 
-## Development Setup
-
-```bash
-# Clone the repo
-git clone https://github.com/CodePirate7/webmcp-anything.git
-cd webmcp-anything
-
-# Install dependencies
-pnpm install
-
-# Build all packages
-pnpm build
-
-# Run the Bridge in dev mode
-pnpm dev
-```
-
-## Project Structure
-
-```
-packages/
-├── sdk/      # @webmcp-anything/sdk — browser SDK (useWebMCP + Bridge client)
-├── bridge/   # @webmcp-anything/bridge — Node.js Bridge server
-└── cli/      # webmcp-anything — CLI entry point
-
-skill/        # AI agent skill/command definitions (methodology prompts)
-examples/     # Example integrations
-```
-
-## What to Contribute
-
-### Good First Issues
-
-- Add Vue composable (`useWebMCPVue`) to the SDK
-- Add Svelte adapter to the SDK
-- Improve error messages in the Bridge
-- Add more examples (Vue + Pinia, React + Zustand)
+## What You Can Contribute
 
 ### Methodology Improvements
 
@@ -48,48 +12,43 @@ The `WEB-HARNESS.md` and `skill/` files define how AI agents generate Tool integ
 2. Propose changes to `WEB-HARNESS.md` or skill commands
 3. Include a real-world example showing why the change is needed
 
-### New Framework Support
+### New Framework Examples
 
-To add support for a new framework (e.g., Svelte, Angular):
+To add support for a new framework:
 
-1. Create an adapter in `packages/sdk/src/` (e.g., `use-webmcp-svelte.ts`)
-2. Add the framework to the tech stack table in `WEB-HARNESS.md`
-3. Add an example in `examples/`
-4. Update `skill/SKILL.md` with framework-specific guidance
+1. Create a new directory under `examples/` (e.g., `examples/vue-todo/`)
+2. Use [MCP-B](https://github.com/nicobailon/mcp-b) infrastructure (`@mcp-b/global`, `@mcp-b/webmcp-local-relay`)
+3. Follow the design principles in `WEB-HARNESS.md`
+4. Include a README with setup instructions
 
-## Code Style
+### Skill Command Improvements
 
-- TypeScript with strict mode
-- ESM modules (`"type": "module"`)
-- No default exports — use named exports
-- Schemas defined as `const` objects with `as const`
+The `skill/commands/` directory contains AI-readable prompts for code generation. Improvements to these prompts directly improve the quality of generated Tools.
 
 ## Commit Messages
 
 Follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
-feat: add Vue composable for useWebMCP
-fix: handle WebSocket reconnection edge case
 docs: update WEB-HARNESS.md with Svelte patterns
+feat: add vue-todo example
+fix: correct state management guidance in generate command
 ```
 
 ## Pull Requests
 
 1. Fork the repo and create a branch from `main`
 2. Make your changes
-3. Ensure TypeScript compiles: `pnpm typecheck`
-4. Write a clear PR description explaining **what** and **why**
-5. Link any related issues
+3. Write a clear PR description explaining **what** and **why**
+4. Link any related issues
 
 ## Reporting Issues
 
-When reporting bugs, please include:
+When reporting issues, please include:
 
-- What you expected to happen
-- What actually happened
-- Steps to reproduce
-- Your environment (Node version, browser, framework)
+- What scenario or framework you're working with
+- What the methodology recommended vs what actually works
+- Suggested improvement
 
 ## License
 

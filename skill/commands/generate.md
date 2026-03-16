@@ -100,12 +100,13 @@ For each Tool module, generate files in `src/webmcp/`:
    - Page-level: `useXxxTools()` in the page component
    - Global: `useGlobalTools()` in the app shell
 
-### Phase 4: SDK Integration
+### Phase 4: Infrastructure Integration (MCP-B)
 
-- Install `@webmcp-anything/sdk` dependency
-- Configure Bridge connection in `src/webmcp/index.ts`
-- Verify SDK's `useWebMCP` hook is correctly imported and used
-- Ensure native WebMCP detection fallback is in place
+- Install MCP-B packages: `@mcp-b/global` (polyfill) + `usewebmcp` (React hook)
+- Add `import '@mcp-b/global'` to the app entry point
+- Verify `useWebMCP` hook is correctly imported from `usewebmcp`
+- Configure `@mcp-b/webmcp-local-relay` for connecting to AI agents
+- When native `navigator.modelContext` is available, no polyfill needed
 
 ### Phase 5: Test Planning
 
@@ -132,7 +133,7 @@ For each Tool module, generate files in `src/webmcp/`:
 ```
 src/
 └── webmcp/
-    ├── index.ts                    # SDK init + Bridge config
+    ├── index.ts                    # Tool registration entry point
     ├── global-tools.ts             # Global navigation Tools
     ├── tool-manifest.json          # Tool inventory
     ├── README.md                   # Usage documentation
@@ -171,4 +172,4 @@ The command succeeds when:
 6. Unit and integration tests pass
 7. `tool-manifest.json` accurately lists all Tools and page mappings
 8. README.md documents all Tools and Bridge setup
-9. SDK integration is configured and functional
+9. MCP-B infrastructure is configured (`@mcp-b/global` polyfill + `usewebmcp` hook)

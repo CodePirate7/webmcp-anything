@@ -134,7 +134,7 @@ simulations.
    ```typescript
    // webmcp/modules/questionnaire-tools.ts
 
-   import { useWebMCP } from '@webmcp-anything/sdk';
+   import { useWebMCP } from 'usewebmcp';
    // ... import store, dispatch, types from the app
 
    // ── Schemas ──
@@ -213,58 +213,51 @@ simulations.
      0-based, expose 1-based to the agent (more natural for LLMs).
    - **Mark required fields** — Don't make the agent guess which fields are needed.
 
-### Phase 4: Bridge & SDK Integration
+### Phase 4: Infrastructure Integration (MCP-B)
 
-The Bridge connects the web page's Tools to AI agents via MCP protocol.
+The infrastructure layer connects the web page's Tools to AI agents. We recommend the [MCP-B](https://github.com/nicobailon/mcp-b) ecosystem:
 
-1. **SDK responsibilities** (runs in the browser):
-   - Provide `useWebMCP` hook (React) / composable (Vue) / decorator (Angular)
-   - Manage Tool lifecycle (register on mount, unregister on unmount)
-   - Handle WebSocket connection to Bridge
-   - Implement reconnection with exponential backoff
-   - Support fallback: detect `navigator.modelContext` → use native WebMCP if
-     available, otherwise connect to Bridge
+1. **Install MCP-B packages**:
 
-2. **Bridge responsibilities** (runs as Node.js process):
-   - WebSocket server accepting page connections
-   - Tab Registry: track which tabs have which Tools
-   - MCP Server: expose registered Tools via MCP protocol (stdio or HTTP/SSE)
-   - Route tool calls to the correct tab
-   - Handle tab connect/disconnect gracefully
-
-3. **Deployment modes**:
-
-   ```
-   Mode A (Development):
-     Bridge runs on localhost
-     Agent connects via MCP stdio
-     → For local development with Claude Code, Cursor, etc.
-
-   Mode B (Production):
-     Bridge deployed as cloud service
-     Agent connects via MCP HTTP/SSE with auth token
-     → For remote agents (Claude Desktop, ChatGPT, etc.)
+   ```bash
+   npm install @mcp-b/global usewebmcp
    ```
 
-4. **Connection protocol**:
+2. **Add the polyfill** to your app entry:
 
-   ```
-   Page → Bridge:
-     register    { appId, url, tools[] }        → On page load
-     tools_updated  { tools[] }                  → On Tool mount/unmount
-     tool_result    { callId, result }           → Tool execution result
-     tool_error     { callId, error }            → Tool execution error
-
-   Bridge → Page:
-     registered     { tabId }                    → Confirm registration
-     execute_tool   { callId, name, arguments }  → Request Tool execution
+   ```typescript
+   // src/main.tsx (or your app entry point)
+   import '@mcp-b/global';
    ```
 
-5. **Security**:
-   - Bridge generates a random token on startup
-   - SDK must present token during WebSocket handshake
-   - In production mode: use proper auth (JWT, API key)
-   - Validate Origin header to prevent cross-site connections
+   This provides `navigator.modelContext` in browsers that don't yet support it natively.
+
+3. **Use the `useWebMCP` hook** from `usewebmcp` (React) for Tool registration.
+   For Vue, use the equivalent composable. The pattern is always the same:
+   register on mount, unregister on unmount.
+
+4. **Connect to AI agents** via `@mcp-b/webmcp-local-relay`:
+
+   ```bash
+   npm install @mcp-b/webmcp-local-relay
+   npx webmcp-local-relay
+   ```
+
+   Add to MCP client config:
+
+   ```json
+   {
+     "mcpServers": {
+       "my-webapp": {
+         "command": "npx",
+         "args": ["webmcp-local-relay"]
+       }
+     }
+   }
+   ```
+
+5. **Native WebMCP support**: When `navigator.modelContext` is available
+   (Chrome 146+), no polyfill or relay is needed — Tools are exposed directly.
 
 ### Phase 5: Test Planning
 
@@ -435,9 +428,13 @@ execute: async (input) => {
 }
 ```
 
-### 5. Bridge is a Thin Pipe
+### 5. Infrastructure is External
 
-The Bridge should do as little as possible:
+The transport layer (polyfill, Bridge/Relay, Chrome Extension) is handled by
+[MCP-B](https://github.com/nicobailon/mcp-b). webmcp-anything focuses on
+the Tool definitions — what the app exposes, not how it's transported.
+
+The relay/bridge should do as little as possible:
 - Route messages between pages and agents
 - Manage tab connections
 - Expose MCP protocol
@@ -530,39 +527,21 @@ app, not an external wrapper.
 
 ---
 
-## Monorepo Structure (webmcp-anything project)
+## Project Structure (webmcp-anything)
 
 ```
 webmcp-anything/
 ├── WEB-HARNESS.md                  # This file — methodology SOP
+├── VISION.md                       # Project positioning and vision
 ├── README.md                       # Project overview and quick start
-├── packages/
-│   ├── sdk/                        # Browser SDK (@webmcp-anything/sdk)
-│   │   ├── src/
-│   │   │   ├── useWebMCP.ts        # React hook
-│   │   │   ├── useWebMCPVue.ts     # Vue composable (future)
-│   │   │   ├── bridge-client.ts    # WebSocket client to Bridge
-│   │   │   └── native-detect.ts    # navigator.modelContext detection
-│   │   └── package.json
-│   ├── bridge/                     # Bridge server (@webmcp-anything/bridge)
-│   │   ├── src/
-│   │   │   ├── index.ts            # Entry: start WS + MCP
-│   │   │   ├── ws-server.ts        # WebSocket server
-│   │   │   ├── tab-registry.ts     # Tab connection registry
-│   │   │   └── mcp-server.ts       # MCP protocol handler
-│   │   └── package.json
-│   └── cli/                        # CLI entry (@webmcp-anything/cli)
-│       ├── src/
-│       │   └── index.ts            # `webmcp-anything start` etc.
-│       └── package.json
 ├── skill/                          # AI agent skill/command definitions
-│   ├── SKILL.md                    # For Codex/Craft Agent
+│   ├── SKILL.md                    # Self-contained methodology
 │   └── commands/
 │       ├── generate.md             # /webmcp-anything <project-path>
 │       ├── refine.md               # /webmcp-anything:refine <project-path>
 │       └── validate.md             # /webmcp-anything:validate <project-path>
-└── examples/
-    └── react-questionnaire/        # Example integration
+└── examples/                       # Framework examples (using MCP-B infra)
+    └── react-todo/                 # React + @mcp-b/global + usewebmcp
 ```
 
 ---
@@ -702,18 +681,21 @@ result**. Only the syntax for accessing state and dispatching actions changes.
 8. **Each Tool module MUST be testable in isolation.** Mock the store, call
    execute, verify the result. No reliance on browser environment for unit tests.
 
-9. **The Bridge MUST be a thin transport layer.** No business logic in the Bridge.
-   All intelligence lives in the Tools running in the browser.
+9. **The relay/bridge MUST be a thin transport layer.** No business logic in the
+   transport. All intelligence lives in the Tools running in the browser. Use
+   MCP-B's `@mcp-b/webmcp-local-relay` or equivalent.
 
-10. **SDK MUST detect native WebMCP support** (`navigator.modelContext`) and use
-    it when available, falling back to Bridge transport when not.
+10. **Use `@mcp-b/global` polyfill** to provide `navigator.modelContext` in
+    browsers without native support. When native support is available, the
+    polyfill is not needed.
 
 ---
 
 ## Security Considerations
 
-1. **Token-based Bridge auth** — Bridge generates a random token on startup.
-   SDK must present this token during WebSocket handshake.
+1. **Transport-layer auth** — The relay/bridge should require authentication.
+   MCP-B's local relay handles this for local development; production
+   deployments need proper auth (JWT, API key).
 
 2. **Tool annotations** — Mark read-only Tools with `readOnlyHint: true`.
    This lets agents and platforms make safety decisions.

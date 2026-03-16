@@ -2,61 +2,64 @@
 
 # webmcp-anything
 
-**将任何 Web App MCP 化。**
+**将任何 Web App 变为 AI 可调用的 MCP 工具的方法论。**
 
-webmcp-anything 是一套方法论和工具集，让 AI Agent 能够为任意 Web 应用自动生成 [Model Context Protocol (MCP)](https://modelcontextprotocol.io) Tool 集成。AI 分析你的前端代码库，理解状态管理和业务逻辑，生成直接操作应用真实状态的 Tool 定义——不是 DOM 模拟。
+webmcp-anything 教 AI 编码助手（Claude Code、Codex、Cursor 等）如何为任何 Web 应用生成 [Model Context Protocol (MCP)](https://modelcontextprotocol.io) 工具集成。AI 分析你的前端代码库，理解状态管理和业务逻辑，生成操作应用真实状态的 Tool 定义——而非 DOM 模拟。
 
-灵感来源于 [CLI-Anything](https://github.com/HKUDS/CLI-Anything)（为桌面 GUI 软件生成 CLI 接口），webmcp-anything 将同样的「harness」方法论应用于 Web：**定义标准 + AI 提示词，让 AI 生成集成代码。**
+> 灵感来源于 [CLI-Anything](https://github.com/HKUDS/CLI-Anything)，将相同的 "harness" 方法论从桌面软件延伸到 Web。
 
 ## 工作原理
 
 ```
-┌─────────────┐     MCP stdio      ┌──────────────┐     WebSocket      ┌────────────┐
-│  AI Agent   │ ◄────────────────► │    Bridge    │ ◄────────────────► │  Web App   │
-│ (Claude,    │   JSON-RPC         │  (Node.js)   │   ws://localhost   │  (React,   │
-│  Cursor...) │                    │              │   :9100            │  Vue...)   │
-└─────────────┘                    └──────────────┘                    └────────────┘
+你的 Web App                               AI Agent
+(React, Vue, Svelte...)                    (Claude, Cursor, Codex...)
+     │                                          │
+     │  1. AI 读取 WEB-HARNESS.md               │
+     │  2. AI 分析你的代码库                      │
+     │  3. AI 生成 Tool 定义                      │
+     │     (dispatch/actions，非 DOM)             │
+     │                                          │
+     │         MCP-B 基础设施                     │
+     │  ┌─────────────────────────────┐         │
+     ├──│  @mcp-b/global (polyfill)   │──MCP───►│
+     │  │  @mcp-b/webmcp-local-relay  │         │
+     │  └─────────────────────────────┘         │
 ```
 
-1. **你运行**：在 AI 编程 Agent 中执行 `/webmcp-anything <你的项目路径>`
-2. **AI 分析**：前端代码库——框架、状态管理、路由、TypeScript 类型
-3. **AI 生成**：调用应用现有 store action 的 MCP Tool 定义
-4. **Bridge 连接**：运行中的 Web 应用通过 MCP 协议连接到 AI Agent
-5. **AI Agent**：通过结构化的 tool call 操作你的 Web 应用
+1. 在你的 Web App 中**安装** [MCP-B](https://github.com/nicobailon/mcp-b) 基础设施
+2. 在你的 AI 编码助手中**加载** webmcp-anything skill
+3. **运行** `/webmcp-anything <你的项目路径>`
+4. AI 分析代码库并生成 MCP Tool 定义
+5. AI Agent 即可通过结构化工具调用操作你的 Web App
 
 ## 核心原则
 
-- **操作状态，不操作 DOM** — Tool 调用 `dispatch()` / `store.action()`，绝不用 `document.querySelector()`
-- **Tool 跟随页面生命周期** — 页面加载时注册，页面卸载时注销
-- **先读后写** — 每组 Tool 必须包含 `read_*` Tool 提供 Agent 可观测性
-- **复用现有 Action** — 包装应用已有的 store action，不重新实现
-- **AI 生成，标准引导** — 不写代码分析器；提供方法论，让 AI 完成工作
+- **操作状态，非 DOM** — Tool 调用 `dispatch()` / `store.action()`，绝不用 `document.querySelector()`
+- **Tool 跟随页面生命周期** — 页面挂载时注册，卸载时注销
+- **先读后写** — 每组 Tool 必须包含 `read_*` 工具供 Agent 观察
+- **复用已有 Action** — 包装应用已有的 store action，不重新实现
+- **AI 生成，标准指导** — 我们提供方法论，AI 完成实现
 
 ## 快速开始
 
-### 1. 在 Web 应用中安装 SDK
+### 1. 在你的 Web App 中安装 MCP-B 基础设施
 
 ```bash
-npm install @webmcp-anything/sdk
+npm install @mcp-b/global usewebmcp
 ```
 
-### 2. 初始化 Bridge 连接
+### 2. 在应用入口添加 polyfill
 
 ```typescript
-// src/main.tsx（或你的应用入口）
-import { initBridge } from '@webmcp-anything/sdk';
-
-initBridge({
-  url: 'ws://localhost:9100',
-  appId: 'my-app',
-});
+// src/main.tsx
+import '@mcp-b/global';
 ```
 
 ### 3. 在页面组件中注册 Tool
 
 ```typescript
 // src/pages/Dashboard.tsx
-import { useWebMCP } from '@webmcp-anything/sdk';
+import { useWebMCP } from 'usewebmcp';
 import { useStore } from '../store';
 
 function Dashboard() {
@@ -66,196 +69,124 @@ function Dashboard() {
     name: 'read_dashboard_state',
     description: '读取当前仪表盘的指标和状态',
     inputSchema: { type: 'object', properties: {} } as const,
-    execute: async () => {
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            totalUsers: store.metrics.totalUsers,
-            activeToday: store.metrics.activeToday,
-            revenue: store.metrics.revenue,
-          }, null, 2),
-        }],
-      };
-    },
+    execute: async () => ({
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          totalUsers: store.metrics.totalUsers,
+          activeToday: store.metrics.activeToday,
+          revenue: store.metrics.revenue,
+        }, null, 2),
+      }],
+    }),
   });
 
   return <DashboardView />;
 }
 ```
 
-### 4. 将 Bridge 添加到 MCP 配置
+### 4. 通过 MCP-B Relay 连接 AI Agent
+
+```bash
+npm install @mcp-b/webmcp-local-relay
+npx webmcp-local-relay
+```
+
+在 MCP 客户端配置中添加：
 
 ```json
 {
   "mcpServers": {
     "my-webapp": {
       "command": "npx",
-      "args": ["webmcp-anything", "start"]
+      "args": ["webmcp-local-relay"]
     }
   }
 }
 ```
 
-### 5. 让 AI 生成剩余部分
+### 5. 让 AI 生成剩余代码
 
-在你的 AI 编程 Agent 中使用 webmcp-anything 的 skill/command：
+在 AI 编码助手中加载 webmcp-anything skill，然后运行：
 
 ```
 /webmcp-anything ./path/to/your/project
 ```
 
-AI 会分析你的代码库并生成完整的 Tool 集合。
+AI 将分析你的代码库，按照 WEB-HARNESS.md 方法论生成完整的 Tool 集。
 
-## AI 驱动的生成
+## AI Skill 命令
 
-webmcp-anything 遵循 **harness 方法论**：我们提供标准和提示词，AI 生成集成代码。
+| 命令 | 说明 |
+|------|------|
+| `/webmcp-anything <path>` | 为 Web App 生成全部 Tool |
+| `/webmcp-anything:refine <path>` | 增量扩展 Tool 覆盖范围 |
+| `/webmcp-anything:validate <path>` | 审计 Tool 质量 |
 
 ### Claude Code / Craft Agent
 
-将 `skill/` 目录复制到你的 Agent skills 文件夹中，然后使用：
-
-```
-/webmcp-anything <project-path>          # 生成所有 Tool
-/webmcp-anything:refine <project-path>   # 扩展覆盖范围
-/webmcp-anything:validate <project-path> # 审计质量
-```
+将 `skill/` 目录复制到你的 agent skills 目录。
 
 ### Codex / 其他 Agent
 
-阅读 `skill/SKILL.md`——它包含方法论的自包含版本。
-
-## 架构
-
-### 包
-
-| 包 | 描述 | npm |
-|---|------|-----|
-| `@webmcp-anything/sdk` | 浏览器 SDK — Bridge 客户端 + `useWebMCP` 重导出 | `@webmcp-anything/sdk` |
-| `@webmcp-anything/bridge` | Node.js Bridge 服务 — WebSocket + MCP stdio | `@webmcp-anything/bridge` |
-| `webmcp-anything` | CLI 入口 | `webmcp-anything` |
-
-### Bridge 工作原理
-
-Bridge 是 Web 应用和 AI Agent 之间的**薄管道**：
-
-```
-浏览器标签页                   Bridge 服务                  AI Agent
-    │                              │                           │
-    │── WS 连接 ─────────────────>│                           │
-    │── register {appId, tools} ─>│                           │
-    │<─ registered {tabId} ───────│                           │
-    │                              │                           │
-    │  (useWebMCP 挂载 Tool)       │                           │
-    │── tools_updated {tools} ───>│                           │
-    │                              │<── tools/list ────────────│
-    │                              │──── tools[] ─────────────>│
-    │                              │<── tools/call ────────────│
-    │<─ execute_tool {name,args} ─│                           │
-    │── tool_result {result} ────>│──── result ──────────────>│
-```
-
-**原生 WebMCP 支持**：当 `navigator.modelContext` 可用时（Chrome 146+），SDK 直接使用——无需 Bridge。Bridge 是浏览器不支持原生 WebMCP 时的降级方案。
-
-### 多标签页支持
-
-多标签页连接时，Tool 自动加上命名空间：
-
-```
-单标签页:  read_questionnaire_state
-多标签页:  questionnaire-a3f2:read_questionnaire_state
-           dashboard-b7c1:read_dashboard_state
-```
-
-## 支持的框架
-
-| 框架 | 状态管理 | 状态 |
-|------|---------|------|
-| React | Redux / Rematch | 已支持 |
-| React | Zustand | 已支持 |
-| React | Jotai / Recoil | 已支持 |
-| Vue | Pinia | 计划中 |
-| Vue | Vuex | 计划中 |
-| Svelte | Stores | 计划中 |
-| Angular | NgRx / Services | 计划中 |
-
-方法论适用于任何框架——只是 hook/注册的语法不同。
+阅读 `skill/SKILL.md`——它包含自包含版本的方法论。
 
 ## 项目结构
 
 ```
 webmcp-anything/
-├── WEB-HARNESS.md              # 方法论 SOP（「圣经」）
-├── README.md                   # 英文 README
-├── README.zh-CN.md             # 中文 README（本文件）
-├── packages/
-│   ├── sdk/                    # @webmcp-anything/sdk
-│   │   └── src/
-│   │       ├── index.ts        # 入口：重导出 useWebMCP + bridge
-│   │       ├── bridge-client.ts # WebSocket 驱动的 modelContext
-│   │       └── result-helpers.ts
-│   ├── bridge/                 # @webmcp-anything/bridge
-│   │   └── src/
-│   │       ├── index.ts        # 入口：startBridge()
-│   │       ├── ws-server.ts    # WebSocket 服务
-│   │       ├── tab-registry.ts # 标签页连接注册表
-│   │       ├── mcp-server.ts   # MCP stdio 处理
-│   │       └── bin.ts          # CLI 入口
-│   └── cli/                    # webmcp-anything
-│       └── src/
-│           └── index.ts        # CLI 命令
-├── skill/                      # AI Agent 指令定义
+├── WEB-HARNESS.md              # 方法论 SOP（核心资产）
+├── VISION.md                   # 项目定位与愿景
+├── README.md                   # 英文说明
+├── skill/                      # AI Skill 定义（核心资产）
 │   ├── SKILL.md                # 自包含方法论
 │   └── commands/
 │       ├── generate.md         # /webmcp-anything <path>
 │       ├── refine.md           # /webmcp-anything:refine
 │       └── validate.md         # /webmcp-anything:validate
-└── examples/
-    └── react-questionnaire/    # 示例集成
+└── examples/                   # 框架示例
+    └── react-todo/             # React + MCP-B 完整示例
 ```
 
-## 与 CLI-Anything 的对比
+## 基础设施：MCP-B
 
-| 方面 | CLI-Anything | webmcp-anything |
-|------|-------------|----------------|
-| 目标 | 桌面 GUI 软件 | Web 应用 |
-| 分析 | 后端源码 | 前端源码 |
-| 生成 | Python CLI (Click) | TypeScript MCP Tool |
-| 后端 | 真实软件可执行文件 | Web 应用真实状态层 |
-| 接口 | CLI 命令 + REPL | MCP Tool via Bridge |
-| 生命周期 | 静态（安装一次） | 动态（随页面挂载/卸载） |
+webmcp-anything 是一个**方法论项目**——不提供自有 SDK 或 Bridge。基础设施推荐使用 [MCP-B](https://github.com/nicobailon/mcp-b) 生态：
 
-**共同点**：AI 生成代码、方法论提供标准、先读后写模式、单操作单 Tool、迭代式细化。
+| 包 | 用途 |
+|----|------|
+| `@mcp-b/global` | `navigator.modelContext` polyfill |
+| `usewebmcp` | React Hook，注册 Tool |
+| `@mcp-b/react-webmcp` | 另一种 React 集成方式 |
+| `@mcp-b/webmcp-local-relay` | 本地 Bridge（WebSocket + MCP stdio） |
+| MCP-B Chrome Extension | 浏览器直连 Agent |
 
-## 与 MCP-B 的对比
+当浏览器原生支持 `navigator.modelContext`（Chrome 146+）时，无需 Bridge 或 polyfill。
 
-| 方面 | MCP-B | webmcp-anything |
-|------|-------|----------------|
-| 传输 | postMessage + Chrome 插件 | WebSocket（无需插件） |
-| 生产部署 | 云中继 (mcp-b.io) | 自托管 Bridge 或原生 WebMCP |
-| Tool 注册 | `navigator.modelContext` | 相同（兼容的 polyfill） |
-| 跨浏览器 | 仅 Chrome（需插件） | 所有浏览器（WebSocket） |
-| 生成方式 | 手动编写 Tool | AI 驱动 + 方法论 |
+## 支持的框架
 
-webmcp-anything 使用 MCP-B npm 生态中相同的 `useWebMCP` hook——两者互补，不是竞争。
+方法论适用于**任何前端框架**——只有 hook/注册语法不同：
 
-## 灵感与致谢
+| 框架 | 状态管理 | 注册方式 |
+|------|---------|---------|
+| React | Redux / Zustand / Jotai | `useWebMCP` hook |
+| Vue | Pinia / Vuex | `useWebMCPVue` composable |
+| Svelte | Stores | `onMount` + SDK |
+| Angular | NgRx / Services | Decorator 或 service |
+| Vanilla JS | 直接状态 | SDK API |
 
-本项目建立在以下优秀工作之上：
+## 致谢
 
-| 项目 | 贡献 | 链接 |
-|------|------|------|
-| **CLI-Anything** | 「harness」方法论 — AI 阅读标准，生成集成代码。我们的整体方法（WEB-HARNESS.md + skill commands）直接受 CLI-Anything 的 HARNESS.md + commands 模式启发。 | [HKUDS/CLI-Anything](https://github.com/HKUDS/CLI-Anything) |
-| **WebMCP (W3C 草案)** | `navigator.modelContext` 浏览器 API 规范，定义了网页如何向 AI Agent 暴露 Tool。我们的 SDK 以此标准为目标。 | [WebMCP Spec](https://webmachinelearning.github.io/webmcp/) |
-| **MCP-B (Browser MCP)** | `useWebMCP` React hook 和 `@mcp-b/webmcp-polyfill`，我们在此基础上构建。MCP-B 开创了使用 Chrome 插件 + 云中继的浏览器到 Agent 桥接概念。 | [anthropics/mcp-b](https://github.com/anthropics/mcp-b) |
-| **Model Context Protocol** | 底层协议标准，使 AI Agent 能够发现和调用 Tool。我们的 Bridge 通过 `@modelcontextprotocol/sdk` 实现 MCP。 | [MCP Spec](https://modelcontextprotocol.io) |
-
-**核心区别**：CLI-Anything 为桌面 GUI 软件生成 CLI 命令；webmcp-anything 为 Web 应用生成 MCP Tool。MCP-B 提供 Chrome 插件传输；webmcp-anything 提供跨浏览器的 WebSocket 传输。它们是解决「AI 操作软件」问题的互补方案。
+| 项目 | 贡献 |
+|------|------|
+| [CLI-Anything](https://github.com/HKUDS/CLI-Anything) | "Harness" 方法论——AI 读标准，生成集成代码 |
+| [WebMCP (W3C Draft)](https://webmachinelearning.github.io/webmcp/) | `navigator.modelContext` 浏览器 API 规范 |
+| [MCP-B](https://github.com/nicobailon/mcp-b) | 浏览器 MCP 基础设施——polyfill、hooks、relay、Chrome 扩展 |
+| [Model Context Protocol](https://modelcontextprotocol.io) | 底层协议标准 |
 
 ## 贡献
 
-欢迎贡献！请参阅 [CONTRIBUTING.md](./CONTRIBUTING.md) 了解指南。
+欢迎贡献！请查看 [CONTRIBUTING.md](./CONTRIBUTING.md)。
 
-## 许可证
+## 协议
 
 MIT

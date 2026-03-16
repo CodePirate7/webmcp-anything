@@ -87,7 +87,7 @@ Check that the Tool integration:
 
 4. **Use Existing Actions** — Wrap the app's existing store actions. Don't create parallel business logic.
 
-5. **Bridge is a Thin Pipe** — Route messages only. No business logic in the Bridge.
+5. **Infrastructure is External** — Use [MCP-B](https://github.com/nicobailon/mcp-b) for polyfill (`@mcp-b/global`), hooks (`usewebmcp`), and relay (`@mcp-b/webmcp-local-relay`). No business logic in the transport.
 
 6. **Schema is the Contract** — Complete, accurate, typed, described. Every property needs `type` and `description`.
 
@@ -97,10 +97,10 @@ Check that the Tool integration:
 
 | Stack | State Access | Action Dispatch | Registration |
 |-------|-------------|-----------------|--------------|
-| React + Redux/Rematch | `store.getState()` | `dispatch.model.action()` | `useWebMCP` in component |
-| React + Zustand | `useStore.getState()` | `useStore.getState().action()` | `useWebMCP` in component |
+| React + Redux/Rematch | `store.getState()` | `dispatch.model.action()` | `useWebMCP` from `usewebmcp` |
+| React + Zustand | `useStore.getState()` | `useStore.getState().action()` | `useWebMCP` from `usewebmcp` |
 | Vue + Pinia | `useStore().$state` | `useStore().action()` | `useWebMCPVue` in setup |
-| Svelte | `get(store)` | `store.set(value)` | `onMount` + SDK |
+| Svelte | `get(store)` | `store.set(value)` | `onMount` + `@mcp-b/global` |
 | Angular | `inject(Store)` | `store.dispatch(action)` | Decorator or service |
 
 The pattern is always: **read state → call existing actions → return result**. Only syntax changes.

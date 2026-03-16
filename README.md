@@ -2,27 +2,35 @@
 
 # webmcp-anything
 
-**Turn any Web App into an MCP Tool Server.**
+**A methodology for turning any Web App into AI-callable MCP Tools.**
 
-webmcp-anything is a methodology and toolkit that enables AI agents to generate [Model Context Protocol (MCP)](https://modelcontextprotocol.io) Tool integrations for any web application. The agent analyzes your frontend codebase, understands your state management and business logic, and generates Tool definitions that operate your app's real state — not DOM simulations.
+webmcp-anything teaches AI coding agents (Claude Code, Codex, Cursor, etc.) how to generate [Model Context Protocol (MCP)](https://modelcontextprotocol.io) Tool integrations for any web application. The agent analyzes your frontend codebase, understands your state management and business logic, and generates Tool definitions that operate your app's real state — not DOM simulations.
 
-Inspired by [CLI-Anything](https://github.com/HKUDS/CLI-Anything) which generates CLI interfaces for desktop GUI software, webmcp-anything applies the same "harness" methodology to the web: **define standards + AI prompts, let the AI generate the integration code.**
+> Inspired by [CLI-Anything](https://github.com/HKUDS/CLI-Anything) which generates CLI interfaces for desktop software.
 
 ## How It Works
 
 ```
-┌─────────────┐     MCP stdio      ┌──────────────┐     WebSocket      ┌────────────┐
-│  AI Agent   │ ◄────────────────► │    Bridge    │ ◄────────────────► │  Web App   │
-│ (Claude,    │   JSON-RPC         │  (Node.js)   │   ws://localhost   │  (React,   │
-│  Cursor...) │                    │              │   :9100            │  Vue...)   │
-└─────────────┘                    └──────────────┘                    └────────────┘
+Your Web App                                AI Agent
+(React, Vue, Svelte...)                    (Claude, Cursor, Codex...)
+     │                                          │
+     │  1. AI reads WEB-HARNESS.md              │
+     │  2. AI analyzes your codebase            │
+     │  3. AI generates Tool definitions        │
+     │     (dispatch/actions, not DOM)           │
+     │                                          │
+     │         MCP-B Infrastructure             │
+     │  ┌─────────────────────────────┐         │
+     ├──│  @mcp-b/global (polyfill)   │──MCP───►│
+     │  │  @mcp-b/webmcp-local-relay  │         │
+     │  └─────────────────────────────┘         │
 ```
 
-1. **You run**: `/webmcp-anything <your-project-path>` in your AI coding agent
-2. **AI analyzes** your frontend codebase — framework, state management, routes, TypeScript types
-3. **AI generates** MCP Tool definitions that call your app's existing store actions
-4. **Bridge connects** your running web app to AI agents via MCP protocol
-5. **AI agents** can now operate your web app through structured tool calls
+1. **Install** [MCP-B](https://github.com/nicobailon/mcp-b) infrastructure in your web app
+2. **Load** the webmcp-anything skill in your AI coding agent
+3. **Run** `/webmcp-anything <your-project-path>`
+4. AI analyzes your codebase and generates MCP Tool definitions
+5. AI agents can now operate your web app through structured tool calls
 
 ## Key Principles
 
@@ -30,33 +38,28 @@ Inspired by [CLI-Anything](https://github.com/HKUDS/CLI-Anything) which generate
 - **Tools Follow Page Lifecycle** — Register on page mount, unregister on unmount
 - **Read Before Write** — Every tool group includes a `read_*` tool for agent observability
 - **Use Existing Actions** — Wrap your app's existing store actions, don't reimplement
-- **AI Generates, Standards Guide** — No code analyzer; provide methodology, let AI do the work
+- **AI Generates, Standards Guide** — We provide methodology, AI does the work
 
 ## Quick Start
 
-### 1. Install the SDK in your web app
+### 1. Install MCP-B infrastructure in your web app
 
 ```bash
-npm install @webmcp-anything/sdk
+npm install @mcp-b/global usewebmcp
 ```
 
-### 2. Initialize the Bridge connection
+### 2. Add the polyfill to your app entry
 
 ```typescript
-// src/main.tsx (or your app entry point)
-import { initBridge } from '@webmcp-anything/sdk';
-
-initBridge({
-  url: 'ws://localhost:9100',
-  appId: 'my-app',
-});
+// src/main.tsx
+import '@mcp-b/global';
 ```
 
 ### 3. Register Tools in your page components
 
 ```typescript
 // src/pages/Dashboard.tsx
-import { useWebMCP } from '@webmcp-anything/sdk';
+import { useWebMCP } from 'usewebmcp';
 import { useStore } from '../store';
 
 function Dashboard() {
@@ -66,32 +69,37 @@ function Dashboard() {
     name: 'read_dashboard_state',
     description: 'Read the current dashboard metrics and status',
     inputSchema: { type: 'object', properties: {} } as const,
-    execute: async () => {
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            totalUsers: store.metrics.totalUsers,
-            activeToday: store.metrics.activeToday,
-            revenue: store.metrics.revenue,
-          }, null, 2),
-        }],
-      };
-    },
+    execute: async () => ({
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          totalUsers: store.metrics.totalUsers,
+          activeToday: store.metrics.activeToday,
+          revenue: store.metrics.revenue,
+        }, null, 2),
+      }],
+    }),
   });
 
   return <DashboardView />;
 }
 ```
 
-### 4. Add the Bridge to your MCP config
+### 4. Connect to AI agents via MCP-B Relay
+
+```bash
+npm install @mcp-b/webmcp-local-relay
+npx webmcp-local-relay
+```
+
+Add to your MCP client config:
 
 ```json
 {
   "mcpServers": {
     "my-webapp": {
       "command": "npx",
-      "args": ["webmcp-anything", "start"]
+      "args": ["webmcp-local-relay"]
     }
   }
 }
@@ -99,161 +107,85 @@ function Dashboard() {
 
 ### 5. Let AI generate the rest
 
-Use the webmcp-anything skill/command in your AI coding agent:
+Load the webmcp-anything skill in your AI coding agent, then:
 
 ```
 /webmcp-anything ./path/to/your/project
 ```
 
-The AI will analyze your codebase and generate a complete set of Tools.
+The AI will analyze your codebase and generate a complete set of Tools following the WEB-HARNESS.md methodology.
 
-## AI-Driven Generation
+## AI Skill Commands
 
-webmcp-anything follows the **harness methodology**: we provide standards and prompts, the AI generates the integration code.
+| Command | Description |
+|---------|-------------|
+| `/webmcp-anything <path>` | Generate all Tools for a web app |
+| `/webmcp-anything:refine <path>` | Expand Tool coverage incrementally |
+| `/webmcp-anything:validate <path>` | Audit Tool quality against standards |
 
 ### For Claude Code / Craft Agent
 
-Copy the `skill/` directory into your agent's skills folder and use:
-
-```
-/webmcp-anything <project-path>          # Generate all tools
-/webmcp-anything:refine <project-path>   # Expand coverage
-/webmcp-anything:validate <project-path> # Audit quality
-```
+Copy the `skill/` directory into your agent's skills folder.
 
 ### For Codex / Other Agents
 
 Read `skill/SKILL.md` — it contains a self-contained version of the methodology.
 
-## Architecture
-
-### Packages
-
-| Package | Description | npm |
-|---------|-------------|-----|
-| `@webmcp-anything/sdk` | Browser SDK — Bridge client + `useWebMCP` re-export | `@webmcp-anything/sdk` |
-| `@webmcp-anything/bridge` | Node.js Bridge server — WebSocket + MCP stdio | `@webmcp-anything/bridge` |
-| `webmcp-anything` | CLI entry point | `webmcp-anything` |
-
-### How the Bridge Works
-
-The Bridge is a **thin pipe** between your web app and AI agents:
-
-```
-Browser Tab                    Bridge Server                AI Agent
-    │                              │                           │
-    │── WS connect ───────────────>│                           │
-    │── register {appId, tools} ──>│                           │
-    │<─ registered {tabId} ────────│                           │
-    │                              │                           │
-    │  (useWebMCP mounts tools)    │                           │
-    │── tools_updated {tools} ────>│                           │
-    │                              │<── tools/list ────────────│
-    │                              │──── tools[] ─────────────>│
-    │                              │<── tools/call ────────────│
-    │<─ execute_tool {name,args} ──│                           │
-    │── tool_result {result} ─────>│──── result ──────────────>│
-```
-
-**Native WebMCP support**: When `navigator.modelContext` is available (Chrome 146+), the SDK uses it directly — no Bridge needed. The Bridge is the fallback for browsers without native support.
-
-### Multi-Tab Support
-
-When multiple tabs are connected, tools are automatically namespaced:
-
-```
-Single tab:   read_questionnaire_state
-Multi-tab:    questionnaire-a3f2:read_questionnaire_state
-              dashboard-b7c1:read_dashboard_state
-```
-
-## Supported Frameworks
-
-| Framework | State Management | Status |
-|-----------|-----------------|--------|
-| React | Redux / Rematch | Supported |
-| React | Zustand | Supported |
-| React | Jotai / Recoil | Supported |
-| Vue | Pinia | Planned |
-| Vue | Vuex | Planned |
-| Svelte | Stores | Planned |
-| Angular | NgRx / Services | Planned |
-
-The methodology works with any framework — only the hook/registration syntax changes.
-
 ## Project Structure
 
 ```
 webmcp-anything/
-├── WEB-HARNESS.md              # Methodology SOP (the "bible")
+├── WEB-HARNESS.md              # Methodology SOP (core asset)
+├── VISION.md                   # Project positioning and vision
 ├── README.md                   # This file
-├── packages/
-│   ├── sdk/                    # @webmcp-anything/sdk
-│   │   └── src/
-│   │       ├── index.ts        # Entry: re-exports useWebMCP + bridge
-│   │       ├── bridge-client.ts # WebSocket-backed modelContext
-│   │       └── result-helpers.ts
-│   ├── bridge/                 # @webmcp-anything/bridge
-│   │   └── src/
-│   │       ├── index.ts        # Entry: startBridge()
-│   │       ├── ws-server.ts    # WebSocket server
-│   │       ├── tab-registry.ts # Tab connection registry
-│   │       ├── mcp-server.ts   # MCP stdio handler
-│   │       └── bin.ts          # CLI entry
-│   └── cli/                    # webmcp-anything
-│       └── src/
-│           └── index.ts        # CLI commands
-├── skill/                      # AI agent skill definitions
+├── skill/                      # AI Skill definition (core asset)
 │   ├── SKILL.md                # Self-contained methodology
 │   └── commands/
 │       ├── generate.md         # /webmcp-anything <path>
 │       ├── refine.md           # /webmcp-anything:refine
 │       └── validate.md         # /webmcp-anything:validate
-└── examples/
-    └── react-questionnaire/    # Example integration
+└── examples/                   # Framework examples
+    └── react-todo/             # React + MCP-B complete example
 ```
 
-## Comparison with CLI-Anything
+## Infrastructure: MCP-B
 
-| Aspect | CLI-Anything | webmcp-anything |
-|--------|-------------|----------------|
-| Target | Desktop GUI software | Web applications |
-| Analyzes | Backend source code | Frontend source code |
-| Generates | Python CLI (Click) | TypeScript MCP Tools |
-| Backend | Real software executable | Real web app state layer |
-| Interface | CLI commands + REPL | MCP Tools via Bridge |
-| Lifecycle | Static (install once) | Dynamic (mount/unmount per page) |
+webmcp-anything is a **methodology project** — it does not ship its own SDK or Bridge. For infrastructure, we recommend the [MCP-B](https://github.com/nicobailon/mcp-b) ecosystem:
 
-**Shared**: AI generates the code, methodology provides the standard, read-first pattern, one operation per tool, iterative refinement.
+| Package | Purpose |
+|---------|---------|
+| `@mcp-b/global` | Polyfill for `navigator.modelContext` |
+| `usewebmcp` | React hook for registering Tools |
+| `@mcp-b/react-webmcp` | Alternative React integration |
+| `@mcp-b/webmcp-local-relay` | Local Bridge (WebSocket + MCP stdio) |
+| MCP-B Chrome Extension | Direct browser-to-agent connection |
 
-## Comparison with MCP-B
+When native `navigator.modelContext` is available (Chrome 146+), no Bridge or polyfill is needed.
 
-| Aspect | MCP-B | webmcp-anything |
-|--------|-------|----------------|
-| Transport | postMessage + Chrome Extension | WebSocket (no extension required) |
-| Production | Cloud relay (mcp-b.io) | Self-hosted Bridge or native WebMCP |
-| Tool Registration | Same (`navigator.modelContext`) | Same (compatible polyfill) |
-| Cross-browser | Chrome only (extension) | All browsers (WebSocket) |
-| Generation | Manual tool writing | AI-driven with methodology |
+## Supported Frameworks
 
-webmcp-anything uses the same `useWebMCP` hook from MCP-B's npm ecosystem — they're complementary, not competing.
+The methodology works with **any frontend framework** — only the hook/registration syntax changes:
+
+| Framework | State Management | Registration |
+|-----------|-----------------|--------------|
+| React | Redux / Zustand / Jotai | `useWebMCP` hook |
+| Vue | Pinia / Vuex | `useWebMCPVue` composable |
+| Svelte | Stores | `onMount` + SDK |
+| Angular | NgRx / Services | Decorator or service |
+| Vanilla JS | Direct state | SDK API directly |
 
 ## Inspiration & Credits
 
-This project stands on the shoulders of these excellent works:
-
-| Project | Contribution | Link |
-|---------|-------------|------|
-| **CLI-Anything** | The "harness" methodology — AI reads standards, generates integration code. Our entire approach (WEB-HARNESS.md + skill commands) is directly inspired by CLI-Anything's HARNESS.md + commands pattern. | [HKUDS/CLI-Anything](https://github.com/HKUDS/CLI-Anything) |
-| **WebMCP (W3C Draft)** | The `navigator.modelContext` browser API specification that defines how web pages expose tools to AI agents. Our SDK targets this standard. | [WebMCP Spec](https://webmachinelearning.github.io/webmcp/) |
-| **MCP-B (Browser MCP)** | The `useWebMCP` React hook and `@mcp-b/webmcp-polyfill` that we build upon. MCP-B pioneered the browser-to-agent bridge concept using Chrome Extension + cloud relay. | [anthropics/mcp-b](https://github.com/anthropics/mcp-b) |
-| **Model Context Protocol** | The underlying protocol standard that enables AI agents to discover and call tools. Our Bridge server implements MCP via `@modelcontextprotocol/sdk`. | [MCP Spec](https://modelcontextprotocol.io) |
-
-**Key distinction**: CLI-Anything generates CLI commands for desktop GUI software; webmcp-anything generates MCP Tools for web applications. MCP-B provides the Chrome Extension transport; webmcp-anything provides a WebSocket transport that works across all browsers. They are complementary approaches solving different parts of the "AI operates software" problem.
+| Project | Contribution |
+|---------|-------------|
+| [CLI-Anything](https://github.com/HKUDS/CLI-Anything) | The "harness" methodology — AI reads standards, generates integration code |
+| [WebMCP (W3C Draft)](https://webmachinelearning.github.io/webmcp/) | The `navigator.modelContext` browser API specification |
+| [MCP-B](https://github.com/nicobailon/mcp-b) | Browser MCP infrastructure — polyfill, hooks, relay, Chrome extension |
+| [Model Context Protocol](https://modelcontextprotocol.io) | The underlying protocol standard |
 
 ## Contributing
 
-Contributions welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+Contributions welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 
