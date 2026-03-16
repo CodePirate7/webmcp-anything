@@ -7,7 +7,7 @@ A simple Todo app demonstrating the webmcp-anything methodology with [MCP-B](htt
 - **State-based Tools** — Tools call Zustand store actions, not DOM manipulation
 - **Read-first pattern** — `read_todos` lets the agent observe before acting
 - **Page lifecycle** — Tools mount with the component, unmount when it leaves
-- **MCP-B infrastructure** — `@mcp-b/global` polyfill + `usewebmcp` React hook
+- **MCP-B infrastructure** — `@mcp-b/global` polyfill + `usewebmcp` React hook + `webmcp-local-relay` embed for transport
 
 ## MCP Tools
 
@@ -31,15 +31,7 @@ pnpm dev
 
 The app will start at `http://localhost:5173`.
 
-### 2. Start the MCP-B Local Relay
-
-In a separate terminal:
-
-```bash
-npx @mcp-b/webmcp-local-relay
-```
-
-### 3. Configure your AI agent
+### 2. Configure your AI agent
 
 Add to your MCP client config (e.g., Claude Desktop, Cursor):
 
@@ -48,10 +40,26 @@ Add to your MCP client config (e.g., Claude Desktop, Cursor):
   "mcpServers": {
     "todo-app": {
       "command": "npx",
-      "args": ["@mcp-b/webmcp-local-relay"]
+      "args": ["-y", "@mcp-b/webmcp-local-relay@latest"]
     }
   }
 }
+```
+
+The relay starts automatically when your AI client connects. It listens on `localhost:9333` for WebSocket connections from the browser tab.
+
+### 3. Open the app and verify connection
+
+Open `http://localhost:5173` in your browser. The page loads `embed.js` which creates a hidden iframe that connects to the relay via WebSocket.
+
+```
+Browser Tab (localhost:5173)           Local Machine
+┌──────────────────────────┐         ┌─────────────────────┐
+│  React App               │         │  webmcp-local-relay  │
+│  ├─ @mcp-b/global        │ embed   │   (MCP server)       │
+│  ├─ useWebMCP (Tools)    │ iframe  │                      │
+│  └─ embed.js ────────────┼── WS ──►│   stdio ──► AI Agent │
+└──────────────────────────┘  :9333  └─────────────────────┘
 ```
 
 ### 4. Use it
@@ -66,16 +74,17 @@ Open the app in your browser, then ask your AI agent:
 ## Project Structure
 
 ```
+index.html                               # Loads embed.js for relay connection
 src/
-├── main.tsx                          # App entry — imports @mcp-b/global polyfill
-├── App.tsx                           # Main component — mounts useTodoTools()
+├── main.tsx                             # App entry — imports @mcp-b/global polyfill
+├── App.tsx                              # Main component — mounts useTodoTools()
 ├── store/
-│   └── todo-store.ts                 # Zustand store — the app's state layer
+│   └── todo-store.ts                    # Zustand store — the app's state layer
 └── webmcp/
     ├── modules/
-    │   └── todo-tools.ts             # MCP Tool definitions (read, add, toggle, delete, clear)
+    │   └── todo-tools.ts                # MCP Tool definitions (read, add, toggle, delete, clear)
     └── utils/
-        └── result-helpers.ts         # MCP content format helpers
+        └── result-helpers.ts            # MCP content format helpers
 ```
 
 ## How It Follows WEB-HARNESS.md

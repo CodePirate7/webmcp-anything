@@ -87,23 +87,26 @@ function Dashboard() {
 
 ### 4. Connect to AI agents via MCP-B Relay
 
-```bash
-npm install @mcp-b/webmcp-local-relay
-npx webmcp-local-relay
+Add the embed script to your `index.html` — this connects the page's Tools to the local relay:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@mcp-b/webmcp-local-relay@latest/dist/browser/embed.js"></script>
 ```
 
-Add to your MCP client config:
+Then add the relay to your MCP client config:
 
 ```json
 {
   "mcpServers": {
     "my-webapp": {
       "command": "npx",
-      "args": ["webmcp-local-relay"]
+      "args": ["-y", "@mcp-b/webmcp-local-relay@latest"]
     }
   }
 }
 ```
+
+The relay listens on `localhost:9333`. The embed script creates a hidden iframe that connects to it via WebSocket, forwarding your page's Tools to the MCP client.
 
 ### 5. Let AI generate the rest
 

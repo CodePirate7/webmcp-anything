@@ -87,23 +87,26 @@ function Dashboard() {
 
 ### 4. 通过 MCP-B Relay 连接 AI Agent
 
-```bash
-npm install @mcp-b/webmcp-local-relay
-npx webmcp-local-relay
+在 `index.html` 中添加 embed 脚本——将页面的 Tools 连接到本地 relay：
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@mcp-b/webmcp-local-relay@latest/dist/browser/embed.js"></script>
 ```
 
-在 MCP 客户端配置中添加：
+然后在 MCP 客户端配置中添加 relay：
 
 ```json
 {
   "mcpServers": {
     "my-webapp": {
       "command": "npx",
-      "args": ["webmcp-local-relay"]
+      "args": ["-y", "@mcp-b/webmcp-local-relay@latest"]
     }
   }
 }
 ```
+
+Relay 监听 `localhost:9333`。embed 脚本创建隐藏 iframe 通过 WebSocket 连接到 relay，将页面的 Tools 转发给 MCP 客户端。
 
 ### 5. 让 AI 生成剩余代码
 
