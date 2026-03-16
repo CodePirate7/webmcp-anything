@@ -16,6 +16,7 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@mcp-b/webmcp-local-relay": "^2.2.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.0",

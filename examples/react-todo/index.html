@@ -8,7 +8,10 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- Connect page's WebMCP tools to the local relay (localhost:9333) -->
-    <script src="https://cdn.jsdelivr.net/npm/@mcp-b/webmcp-local-relay@latest/dist/browser/embed.js"></script>
+    <!-- Connect page's WebMCP tools to the local relay (localhost:9335) -->
+    <script
+      data-relay-port="9335"
+      src="/node_modules/@mcp-b/webmcp-local-relay/dist/browser/embed.js"
+    ></script>
   </body>
 </html>
